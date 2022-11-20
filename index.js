@@ -46,6 +46,17 @@ async function run() {
 
     const bookingCollection = client.db("doctors-portal").collection("booking");
     const usersCollection = client.db("doctors-portal").collection("Users");
+    const doctorsCollection = client.db("doctors-portal").collection("Doctors");
+
+    const verifyAdmin = async (req, res, next) => {
+      const decodeEmail = req.decoded.email;
+      const query = { email: decodeEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden" });
+      }
+      next();
+    };
 
     app.get("/appointmentOptions", async (req, res) => {
       const date = req.query.date;
@@ -68,6 +79,15 @@ async function run() {
         option.slots = remainingSlots;
       });
       res.send(options);
+    });
+
+    app.get("/appoinmentSpeciality", async (req, res) => {
+      const query = {};
+      const result = await appointmentOptionsCollection
+        .find(query)
+        .project({ name: 1 })
+        .toArray();
+      res.send(result);
     });
 
     app.get("/v2/appointmentOptions", async (req, res) => {
@@ -172,13 +192,7 @@ async function run() {
       res.send({ isAdmin: user?.role === "admin" });
     });
 
-    app.put("/users/admin/:id", verifyJWT, async (req, res) => {
-      const decodeEmail = req.decoded.email;
-      const query = { email: decodeEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res.status(403).send({ message: "forbidden" });
-      }
+    app.put("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -199,6 +213,25 @@ async function run() {
       const user = req.body;
 
       const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/doctors", verifyJWT, verifyAdmin, async (req, res) => {
+      const query = {};
+      const result = await doctorsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.delete("/doctors/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await doctorsCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    app.post("/doctors", verifyJWT, verifyAdmin, async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorsCollection.insertOne(doctor);
       res.send(result);
     });
   } finally {
