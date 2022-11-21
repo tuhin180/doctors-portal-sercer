@@ -114,6 +114,7 @@ async function run() {
           {
             $project: {
               name: 1,
+              price: 1,
               slots: 1,
               booked: {
                 $map: {
@@ -127,6 +128,7 @@ async function run() {
           {
             $project: {
               name: 1,
+              price: 1,
               slots: {
                 $setDifference: ["$slots", "$booked"],
               },
@@ -147,6 +149,13 @@ async function run() {
       const query = { email: email };
       const result = await bookingCollection.find(query).toArray();
       // console.log(result);
+      res.send(result);
+    });
+
+    app.get("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookingCollection.findOne(filter);
       res.send(result);
     });
 
@@ -208,6 +217,24 @@ async function run() {
       );
       res.send(result);
     });
+
+    // tepmorary sytem for adding price in the optons
+
+    // app.get("/addPrice", async (req, res) => {
+    //   const query = {};
+    //   const options = { upsert: true };
+    //   const updateDoc = {
+    //     $set: {
+    //       price: 200,
+    //     },
+    //   };
+    //   const result = await appointmentOptionsCollection.updateMany(
+    //     query,
+    //     updateDoc,
+    //     options
+    //   );
+    //   res.send(result);
+    // });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
